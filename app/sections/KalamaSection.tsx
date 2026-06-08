@@ -14,7 +14,7 @@ const SKEWERS = [
   { id: 'sk2', src: '/kalamakia/skewer2.png', label: 'Κοτόπουλο', sublabel: 'Chicken' },
   { id: 'sk3', src: '/kalamakia/skewer3.png', label: 'Αρνί', sublabel: 'Lamb' },
   { id: 'sk4', src: '/kalamakia/skewer4.png', label: 'Μικτό', sublabel: 'Mixed' },
-  { id: 'sk5', src: '/kalamakia/skewer5.png', label: 'Σεφ', sublabel: "Chef's Special" },
+  { id: 'sk5', src: '/kalamakia/skewer5.png', label: 'Vegan', sublabel: 'Plant-based' },
 ]
 
 // Alternating entry directions

@@ -31,7 +31,7 @@ Every ingredient slot currently shows a CSS gradient fallback. Drop your PNG fil
 | Gyros meat | *top-down shaved charcoal-grilled gyros meat pile, dark charred edges, transparent PNG* |
 | Tomato | *top-down sliced ripe tomato on black, transparent PNG* |
 | Onion | *top-down thin-sliced white onion strips, transparent PNG* |
-| Wrapped pitogira | *top-down fully assembled and half-wrapped gyros pita, transparent PNG* |
+| Wrapped pitogira | *bird's-eye view of a Greek pita flatbread rolled into a tight wrap, closed seam side up, lightly charred surface, no open fillings visible, isolated on transparent background, wide landscape crop, food photography* |
 | Skewer (×5) | *vertical grilled pork/chicken/lamb/mixed skewer on black, transparent PNG, portrait 1:3 ratio* |
 | Salad tomato | *chunked ripe tomato piece, transparent PNG, square* |
 | Salad cucumber | *cucumber slice, transparent PNG, square* |
