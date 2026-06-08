@@ -129,7 +129,7 @@ export default function PitogiraSection() {
   }, [])
 
   return (
-    <section ref={sectionRef} className="relative bg-[#0a0a0a]">
+    <section ref={sectionRef} className="relative bg-background">
       {/* The pinned inner viewport */}
       <div className="h-screen flex flex-col items-center justify-center overflow-hidden">
 
@@ -152,7 +152,7 @@ export default function PitogiraSection() {
         {/* Ingredient stack plate */}
         <div
           ref={plateRef}
-          className="relative w-full max-w-[680px] aspect-[2/1] mx-auto"
+          className="relative w-full max-w-170 aspect-2/1 mx-auto"
           style={{ opacity: 0 }}
         >
           {INGREDIENTS.map((ing, i) => (
