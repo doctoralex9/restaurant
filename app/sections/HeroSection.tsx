@@ -1,7 +1,6 @@
 'use client'
 import { useEffect, useRef } from 'react'
 import gsap from 'gsap'
-import EmberCanvas from '../components/EmberCanvas'
 
 const TITLE = 'ΣΧΑΡΑ'
 
@@ -53,13 +52,10 @@ export default function HeroSection() {
   }, [])
 
   return (
-    <section className="relative h-screen flex flex-col items-center justify-center overflow-hidden bg-[#0a0a0a]">
-      {/* Ember particle layer */}
-      <EmberCanvas className="z-0" />
-
+    <section className="relative h-screen flex flex-col items-center justify-center overflow-hidden bg-background">
       {/* Vignette / bottom fade */}
-      <div className="absolute inset-0 z-10 pointer-events-none bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/20 to-transparent" />
-      <div className="absolute inset-0 z-10 pointer-events-none bg-radial-[ellipse_at_center] from-transparent to-[#0a0a0a]/60" />
+      <div className="absolute inset-0 z-10 pointer-events-none bg-linear-to-t from-background via-background/20 to-transparent" />
+      <div className="absolute inset-0 z-10 pointer-events-none bg-radial-[ellipse_at_center] from-transparent to-background/60" />
 
       {/* Content */}
       <div className="relative z-20 text-center select-none px-4">

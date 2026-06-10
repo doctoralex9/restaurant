@@ -2,7 +2,6 @@
 import { useEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import EmberCanvas from '../components/EmberCanvas'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -41,11 +40,8 @@ export default function MenuCTASection() {
   return (
     <section
       ref={sectionRef}
-      className="relative min-h-[70vh] bg-[#0a0a0a] flex flex-col items-center justify-center py-28 overflow-hidden"
+      className="relative min-h-[70vh] bg-background flex flex-col items-center justify-center py-28 overflow-hidden"
     >
-      {/* Background ember glow (sparse) */}
-      <EmberCanvas className="opacity-30 z-0" />
-
       <div className="relative z-10 text-center px-4">
         <div ref={textRef} style={{ opacity: 0 }}>
           <p
@@ -75,7 +71,7 @@ export default function MenuCTASection() {
         <a
           ref={btnRef}
           href="#menu"
-          className="inline-block px-10 py-4 text-sm tracking-[0.25em] uppercase font-medium text-[#0a0a0a] rounded-none"
+          className="inline-block px-10 py-4 text-sm tracking-[0.25em] uppercase font-medium text-background rounded-none"
           style={{
             fontFamily: 'var(--font-inter)',
             background: '#f59e0b',
