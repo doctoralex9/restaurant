@@ -14,7 +14,7 @@ const VERT = `
   }
 `
 
-// Object-fit: contain — video centred, white letterbox for uncovered area
+// Object-fit: contain. Letterbox areas → transparent so CSS gradient shows through.
 const FRAG = `
   uniform sampler2D uVideo;
   uniform float uWinAspect;
@@ -26,8 +26,7 @@ const FRAG = `
     if (r < 1.0) uv.x *= r; else uv.y /= r;
     uv += 0.5;
     if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
-      gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-      return;
+      discard;
     }
     gl_FragColor = texture2D(uVideo, uv);
   }
@@ -41,7 +40,7 @@ export default function VideoScrollSection() {
     const mount   = mountRef.current!
     const section = sectionRef.current!
 
-    // Video — currentTime driven by scroll, never plays
+    // ── Video (off-DOM) ───────────────────────────────────────
     const video = document.createElement('video')
     video.src         = '/souvlaki.mp4'
     video.muted       = true
@@ -49,9 +48,8 @@ export default function VideoScrollSection() {
     video.preload     = 'auto'
     video.currentTime = 0
 
-    // Three.js — opaque white background
-    const renderer = new THREE.WebGLRenderer({ antialias: true })
-    renderer.setClearColor(0xffffff, 1)
+    // ── Three.js (alpha so CSS gradient is visible behind letterbox) ──
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.setSize(mount.clientWidth, mount.clientHeight)
     mount.appendChild(renderer.domElement)
@@ -70,44 +68,63 @@ export default function VideoScrollSection() {
       uVidAspect: { value: 1.0 },
     }
 
-    const material = new THREE.ShaderMaterial({ uniforms, vertexShader: VERT, fragmentShader: FRAG })
+    const material = new THREE.ShaderMaterial({
+      uniforms,
+      vertexShader:   VERT,
+      fragmentShader: FRAG,
+      transparent:    true,   // required for discard to composite correctly
+    })
     scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material))
 
+    // ── Render loop ───────────────────────────────────────────
     let raf: number
     const tick = () => {
-      texture.needsUpdate = true
       renderer.render(scene, camera)
       raf = requestAnimationFrame(tick)
     }
     tick()
 
-    video.addEventListener('loadedmetadata', () => {
-      uniforms.uVidAspect.value = video.videoWidth / video.videoHeight
+    // The key fix: only mark texture dirty AFTER the seek completes.
+    // During a seek, readyState drops and the frame isn't decoded yet;
+    // setting needsUpdate then would upload a stale or blank frame.
+    const onSeeked = () => { texture.needsUpdate = true }
+    video.addEventListener('seeked', onSeeked)
 
-      // Prime the browser's video decoder so frame-accurate seeking works
+    // ── ScrollTrigger (created once metadata is loaded) ───────
+    const ctx = gsap.context(() => {}, section)
+
+    const setup = () => {
+      uniforms.uVidAspect.value = video.videoWidth / video.videoHeight
+      texture.needsUpdate = true   // show frame 0 immediately
+
+      // Prime the decoder so first seek is instant
       video.play()
         .then(() => { video.pause(); video.currentTime = 0 })
         .catch(() => {})
 
-      // Tween a plain proxy — browsers throttle direct currentTime tweening
-      const dur   = video.duration
-      const proxy = { time: 0 }
-      gsap.to(proxy, {
-        time: dur,
-        ease: 'none',
-        scrollTrigger: {
+      const dur = video.duration
+
+      ctx.add(() => {
+        ScrollTrigger.create({
           trigger: section,
           start:   'top top',
           end:     'bottom bottom',
-          scrub:   0.5,
-        },
-        onUpdate() {
-          video.currentTime = proxy.time
-        },
+          onUpdate(self) {
+            // progress goes 0→1 scrolling down, 1→0 scrolling up → video plays both directions
+            video.currentTime = self.progress * dur
+          },
+        })
       })
-    })
+    }
+
+    if (video.readyState >= 1) {
+      setup()
+    } else {
+      video.addEventListener('loadedmetadata', setup, { once: true })
+    }
     video.load()
 
+    // ── Resize ────────────────────────────────────────────────
     const onResize = () => {
       const w = mount.clientWidth, h = mount.clientHeight
       renderer.setSize(w, h)
@@ -117,37 +134,53 @@ export default function VideoScrollSection() {
 
     return () => {
       cancelAnimationFrame(raf)
+      ctx.revert()
+      video.removeEventListener('seeked', onSeeked)
       renderer.dispose()
       if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement)
       window.removeEventListener('resize', onResize)
-      ScrollTrigger.getAll().forEach(t => t.kill())
     }
   }, [])
 
   return (
-    <section ref={sectionRef} style={{ height: '500vh' }} className="relative bg-white">
-      <div className="sticky top-0 h-screen overflow-hidden bg-white">
+    <section ref={sectionRef} style={{ height: '500vh' }} className="relative">
+      <div className="sticky top-0 h-screen overflow-hidden">
 
-        {/* Three.js canvas */}
-        <div ref={mountRef} className="absolute inset-0" />
-
-        {/* Soft white vignette — blends video edges into white background */}
+        {/* Gradient background — visible through the transparent letterbox areas */}
         <div
-          className="absolute inset-0 pointer-events-none"
+          className="absolute inset-0"
           style={{
-            background: 'radial-gradient(ellipse 65% 80% at center, transparent 40%, rgba(255,255,255,0.92) 88%)',
+            background: 'linear-gradient(160deg, #ffffff 0%, #fdf8f2 25%, #f7ede0 55%, #fdf8f2 80%, #ffffff 100%)',
           }}
         />
 
-        {/* Product name */}
-        <div className="absolute inset-x-0 bottom-14 flex flex-col items-center pointer-events-none z-10">
+        {/* Three.js canvas (alpha: true, so gradient shows through letterbox) */}
+        <div ref={mountRef} className="absolute inset-0" />
+
+        {/* Soft vignette fading into gradient */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: 'radial-gradient(ellipse 75% 85% at 50% 48%, transparent 38%, rgba(253,248,242,0.7) 72%, rgba(255,255,255,0.95) 88%)',
+          }}
+        />
+
+        {/* Headline */}
+        <div className="absolute inset-x-0 bottom-16 flex flex-col items-center pointer-events-none z-10">
+          <p
+            className="mb-3 text-[10px] tracking-[0.5em] uppercase text-zinc-400"
+            style={{ fontFamily: 'var(--font-inter)' }}
+          >
+            Scroll to explore
+          </p>
           <h2
-            className="text-5xl md:text-6xl font-black text-zinc-900"
+            className="text-5xl md:text-7xl font-black tracking-tight text-zinc-900"
             style={{ fontFamily: 'var(--font-playfair)' }}
           >
             Το Πιτόγυρο
           </h2>
         </div>
+
       </div>
     </section>
   )

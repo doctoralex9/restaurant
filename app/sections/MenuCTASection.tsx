@@ -40,27 +40,24 @@ export default function MenuCTASection() {
   return (
     <section
       ref={sectionRef}
-      className="relative min-h-[70vh] bg-background flex flex-col items-center justify-center py-28 overflow-hidden"
+      className="relative min-h-[70vh] bg-white flex flex-col items-center justify-center py-28 overflow-hidden"
     >
       <div className="relative z-10 text-center px-4">
         <div ref={textRef} style={{ opacity: 0 }}>
           <p
-            className="text-[10px] tracking-[0.5em] uppercase text-amber-500/50 mb-4"
+            className="text-[10px] tracking-[0.5em] uppercase text-amber-500 mb-4"
             style={{ fontFamily: 'var(--font-inter)' }}
           >
             Ανακάλυψε
           </p>
           <h2
-            className="text-5xl md:text-7xl font-black text-white mb-6 leading-tight"
-            style={{
-              fontFamily: 'var(--font-playfair)',
-              textShadow: '0 0 80px rgba(245,158,11,0.15)',
-            }}
+            className="text-5xl md:text-7xl font-black text-zinc-900 mb-6 leading-tight"
+            style={{ fontFamily: 'var(--font-playfair)' }}
           >
             Δες το μενού μας
           </h2>
           <p
-            className="text-sm md:text-base text-white/35 tracking-[0.2em] uppercase max-w-sm mx-auto mb-10"
+            className="text-sm md:text-base text-zinc-500 tracking-[0.2em] uppercase max-w-sm mx-auto mb-10"
             style={{ fontFamily: 'var(--font-inter)' }}
           >
             Φρέσκα υλικά · Ανοιχτή φωτιά · Αυθεντικές γεύσεις
@@ -71,7 +68,7 @@ export default function MenuCTASection() {
         <a
           ref={btnRef}
           href="#menu"
-          className="inline-block px-10 py-4 text-sm tracking-[0.25em] uppercase font-medium text-background rounded-none"
+          className="inline-block px-10 py-4 text-sm tracking-[0.25em] uppercase font-medium text-white rounded-none"
           style={{
             fontFamily: 'var(--font-inter)',
             background: '#f59e0b',

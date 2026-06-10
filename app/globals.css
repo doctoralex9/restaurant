@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-background: #0a0a0a;
-  --color-foreground: #ededed;
+  --color-background: #ffffff;
+  --color-foreground: #0a0a0a;
   --color-amber: #f59e0b;
   --color-amber-dark: #d97706;
   --color-amber-glow: #fbbf24;
@@ -11,8 +11,8 @@
 }
 
 :root {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  --background: #ffffff;
+  --foreground: #0a0a0a;
 }
 
 *,
@@ -24,14 +24,14 @@
 }
 
 html {
-  background: #0a0a0a;
-  color: #ededed;
-  scroll-behavior: auto; /* Lenis handles smooth scroll */
+  background: #ffffff;
+  color: #0a0a0a;
+  scroll-behavior: auto;
 }
 
 body {
-  background: #0a0a0a;
-  color: #ededed;
+  background: #ffffff;
+  color: #0a0a0a;
   font-family: var(--font-inter), system-ui, sans-serif;
   overflow-x: hidden;
 }
@@ -56,10 +56,10 @@ html.lenis body {
   width: 4px;
 }
 ::-webkit-scrollbar-track {
-  background: #0a0a0a;
+  background: #ffffff;
 }
 ::-webkit-scrollbar-thumb {
-  background: #f59e0b;
+  background: #d1d5db;
   border-radius: 2px;
 }
 
