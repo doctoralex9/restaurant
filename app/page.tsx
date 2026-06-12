@@ -1,5 +1,9 @@
+import VideoScrollSection from './sections/VideoScrollSection'
+
 export default function Page() {
   return (
-    <main className="min-h-screen bg-white" />
+    <main className="bg-white overflow-x-hidden">
+      <VideoScrollSection />
+    </main>
   )
 }

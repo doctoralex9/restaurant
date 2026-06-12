@@ -1,187 +1,93 @@
 'use client'
 import { useEffect, useRef } from 'react'
-import * as THREE from 'three'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
-gsap.registerPlugin(ScrollTrigger)
+const TOTAL_FRAMES = 181
+const frameSrc = (n: number) => `/ezgif-frame-${String(n).padStart(3, '0')}.png`
 
-const VERT = `
-  varying vec2 vUv;
-  void main() {
-    vUv = uv;
-    gl_Position = vec4(position.xy, 0.0, 1.0);
-  }
-`
-
-// Object-fit: contain. Letterbox areas → transparent so CSS gradient shows through.
-const FRAG = `
-  uniform sampler2D uVideo;
-  uniform float uWinAspect;
-  uniform float uVidAspect;
-  varying vec2 vUv;
-  void main() {
-    vec2 uv = vUv - 0.5;
-    float r = uVidAspect / uWinAspect;
-    if (r < 1.0) uv.x *= r; else uv.y /= r;
-    uv += 0.5;
-    if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
-      discard;
-    }
-    gl_FragColor = texture2D(uVideo, uv);
-  }
-`
+// Measured crop: 1920×1080 frames have ~413px black bars on each side
+const CROP = { x: 413, y: 0, w: 1094, h: 1080 }
 
 export default function VideoScrollSection() {
-  const mountRef   = useRef<HTMLDivElement>(null)
   const sectionRef = useRef<HTMLElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
-    const mount   = mountRef.current!
-    const section = sectionRef.current!
+    gsap.registerPlugin(ScrollTrigger)
 
-    // ── Video (off-DOM) ───────────────────────────────────────
-    const video = document.createElement('video')
-    video.src         = '/souvlaki.mp4'
-    video.muted       = true
-    video.playsInline = true
-    video.preload     = 'auto'
-    video.currentTime = 0
+    const canvas = canvasRef.current!
+    const ctx = canvas.getContext('2d')!
+    let currentFrame = 0
 
-    // ── Three.js (alpha so CSS gradient is visible behind letterbox) ──
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-    renderer.setSize(mount.clientWidth, mount.clientHeight)
-    mount.appendChild(renderer.domElement)
+    function paint(index: number) {
+      let img = images[index]
+      // Fall back to nearest earlier loaded frame
+      if (!img?.complete || !img.naturalWidth) {
+        for (let k = index - 1; k >= 0; k--) {
+          if (images[k]?.complete && images[k].naturalWidth) { img = images[k]; break }
+        }
+        if (!img?.complete || !img.naturalWidth) return
+      }
 
-    const scene  = new THREE.Scene()
-    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
+      const W = window.innerWidth
+      const H = window.innerHeight
+      const dpr = window.devicePixelRatio || 1
+      const PW = W * dpr
+      const PH = H * dpr
 
-    const texture = new THREE.VideoTexture(video)
-    texture.minFilter  = THREE.LinearFilter
-    texture.magFilter  = THREE.LinearFilter
-    texture.colorSpace = THREE.SRGBColorSpace
+      canvas.width = PW
+      canvas.height = PH
 
-    const uniforms = {
-      uVideo:     { value: texture },
-      uWinAspect: { value: mount.clientWidth / mount.clientHeight },
-      uVidAspect: { value: 1.0 },
+      const scale = Math.max(PW / CROP.w, PH / CROP.h)
+      const dw = CROP.w * scale
+      const dh = CROP.h * scale
+
+      ctx.fillStyle = '#fff'
+      ctx.fillRect(0, 0, PW, PH)
+      ctx.drawImage(img, CROP.x, CROP.y, CROP.w, CROP.h, (PW - dw) / 2, (PH - dh) / 2, dw, dh)
     }
 
-    const material = new THREE.ShaderMaterial({
-      uniforms,
-      vertexShader:   VERT,
-      fragmentShader: FRAG,
-      transparent:    true,   // required for discard to composite correctly
+    // Set onload BEFORE src so it fires even on a cache hit
+    const images = Array.from({ length: TOTAL_FRAMES }, (_, i) => {
+      const img = new Image()
+      img.onload = () => { if (i <= currentFrame) paint(currentFrame) }
+      img.src = frameSrc(i + 1)
+      return img
     })
-    scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material))
 
-    // ── Render loop ───────────────────────────────────────────
-    let raf: number
-    const tick = () => {
-      renderer.render(scene, camera)
-      raf = requestAnimationFrame(tick)
-    }
-    tick()
+    // Immediate draw if frame 0 is already in cache
+    if (images[0].complete && images[0].naturalWidth) paint(0)
 
-    // The key fix: only mark texture dirty AFTER the seek completes.
-    // During a seek, readyState drops and the frame isn't decoded yet;
-    // setting needsUpdate then would upload a stale or blank frame.
-    const onSeeked = () => { texture.needsUpdate = true }
-    video.addEventListener('seeked', onSeeked)
-
-    // ── ScrollTrigger (created once metadata is loaded) ───────
-    const ctx = gsap.context(() => {}, section)
-
-    const setup = () => {
-      uniforms.uVidAspect.value = video.videoWidth / video.videoHeight
-      texture.needsUpdate = true   // show frame 0 immediately
-
-      // Prime the decoder so first seek is instant
-      video.play()
-        .then(() => { video.pause(); video.currentTime = 0 })
-        .catch(() => {})
-
-      const dur = video.duration
-
-      ctx.add(() => {
-        ScrollTrigger.create({
-          trigger: section,
-          start:   'top top',
-          end:     'bottom bottom',
-          onUpdate(self) {
-            // progress goes 0→1 scrolling down, 1→0 scrolling up → video plays both directions
-            video.currentTime = self.progress * dur
-          },
-        })
+    const gsapCtx = gsap.context(() => {
+      ScrollTrigger.create({
+        trigger: sectionRef.current,
+        start: 'top top',
+        end: '+=500%',
+        pin: true,
+        scrub: 0.5,
+        onUpdate(self) {
+          const next = Math.min(TOTAL_FRAMES - 1, Math.round(self.progress * (TOTAL_FRAMES - 1)))
+          if (next !== currentFrame) {
+            currentFrame = next
+            paint(next)
+          }
+        },
       })
-    }
+    }, sectionRef)
 
-    if (video.readyState >= 1) {
-      setup()
-    } else {
-      video.addEventListener('loadedmetadata', setup, { once: true })
-    }
-    video.load()
-
-    // ── Resize ────────────────────────────────────────────────
-    const onResize = () => {
-      const w = mount.clientWidth, h = mount.clientHeight
-      renderer.setSize(w, h)
-      uniforms.uWinAspect.value = w / h
-    }
+    const onResize = () => { canvas.width = 0; paint(currentFrame) }
     window.addEventListener('resize', onResize)
 
     return () => {
-      cancelAnimationFrame(raf)
-      ctx.revert()
-      video.removeEventListener('seeked', onSeeked)
-      renderer.dispose()
-      if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement)
+      gsapCtx.revert()
       window.removeEventListener('resize', onResize)
     }
   }, [])
 
   return (
-    <section ref={sectionRef} style={{ height: '500vh' }} className="relative">
-      <div className="sticky top-0 h-screen overflow-hidden">
-
-        {/* Gradient background — visible through the transparent letterbox areas */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background: 'linear-gradient(160deg, #ffffff 0%, #fdf8f2 25%, #f7ede0 55%, #fdf8f2 80%, #ffffff 100%)',
-          }}
-        />
-
-        {/* Three.js canvas (alpha: true, so gradient shows through letterbox) */}
-        <div ref={mountRef} className="absolute inset-0" />
-
-        {/* Soft vignette fading into gradient */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: 'radial-gradient(ellipse 75% 85% at 50% 48%, transparent 38%, rgba(253,248,242,0.7) 72%, rgba(255,255,255,0.95) 88%)',
-          }}
-        />
-
-        {/* Headline */}
-        <div className="absolute inset-x-0 bottom-16 flex flex-col items-center pointer-events-none z-10">
-          <p
-            className="mb-3 text-[10px] tracking-[0.5em] uppercase text-zinc-400"
-            style={{ fontFamily: 'var(--font-inter)' }}
-          >
-            Scroll to explore
-          </p>
-          <h2
-            className="text-5xl md:text-7xl font-black tracking-tight text-zinc-900"
-            style={{ fontFamily: 'var(--font-playfair)' }}
-          >
-            Το Πιτόγυρο
-          </h2>
-        </div>
-
-      </div>
+    <section ref={sectionRef} style={{ width: '100%', height: '100vh' }}>
+      <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
     </section>
   )
 }
